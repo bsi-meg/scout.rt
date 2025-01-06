@@ -101,6 +101,20 @@ export const dataObjects = {
     return deserializer.deserialize(obj, metaData);
   },
 
+  deserializeLenient<T extends DoEntity>(obj: any): T {
+    // TODO CGU do pojo check outside if required?
+    if (!objects.isPojo(obj)) {
+      return obj;
+    }
+    // TODO CGU handle arrays?
+    // TODO CGU obj: any correct? or should it be DoEntity resp. object?
+    let Do = doValueMetaData.detectDataObjectClass(obj);
+    if (Do) {
+      return dataObjects.deserialize(obj) as unknown as T;
+    }
+    return obj;
+  },
+
   /**
    * @returns the DO entity contribution for the given contribution class or type.
    */
@@ -143,7 +157,7 @@ export const dataObjects = {
     scout.assertParameter('contributionClassOrType', contributionClassOrType);
     const removed = arrays.removeByPredicate(doEntity._contributions, getContribPredicate(contributionClassOrType));
     if (doEntity._contributions?.length === 0) {
-      delete doEntity._contributions;
+      doEntity._contributions = undefined;
     }
     return removed;
   }

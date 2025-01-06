@@ -7,7 +7,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-import {AnyDoEntity, dataObjects, Event, HybridActionContextElement, HybridActionContextElementConverters, HybridActionContextElements, HybridActionEvent, HybridManager, ModelAdapter, RemoteEvent, scout, Widget} from '../../index';
+import {
+  AnyDoEntity, BaseDoEntity, dataObjects, Event, HybridActionContextElement, HybridActionContextElementConverters, HybridActionContextElements, HybridActionEvent, HybridManager, ModelAdapter, RemoteEvent, scout, Widget
+} from '../../index';
 
 export class HybridManagerAdapter extends ModelAdapter {
   declare widget: HybridManager;
@@ -24,13 +26,13 @@ export class HybridManagerAdapter extends ModelAdapter {
 
   protected _onHybridEvent(event: HybridRemoteEvent) {
     let contextElements = this._jsonToContextElements(event.contextElements);
-    let dataobject = dataObjects.deserialize(event.data);
-    this.widget.onHybridEvent(event.id, event.eventType, dataobject, contextElements);
+    let dataobject = dataObjects.deserializeLenient(event.data);
+    this.widget.onHybridEvent(event.id, event.eventType, dataobject as BaseDoEntity, contextElements);
   }
 
   protected _onHybridWidgetEvent(event: HybridRemoteEvent) {
-    let dataobject = dataObjects.deserialize(event.data);
-    this.widget.onHybridWidgetEvent(event.id, event.eventType, dataobject);
+    let dataobject = dataObjects.deserializeLenient(event.data);
+    this.widget.onHybridWidgetEvent(event.id, event.eventType, dataobject as BaseDoEntity);
   }
 
   protected override _onWidgetEvent(event: Event<HybridManager>) {

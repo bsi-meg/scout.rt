@@ -77,7 +77,7 @@ export class BaseDoEntity {
   clone(model?: InitModelOf<this> | BaseDoEntity): this {
     const addModel = model instanceof BaseDoEntity ? model.toPojo() : model;
     const thisModel = this.toPojo();
-    return dataObjects.deserialize(objects.extend(thisModel, addModel));
+    return dataObjects.deserialize($.extend(thisModel, addModel));
   }
 
   /**

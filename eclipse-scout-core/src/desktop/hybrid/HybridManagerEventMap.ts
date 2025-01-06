@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-import {AnyDoEntity, Event, HybridActionContextElements, HybridManager, PropertyChangeEvent, Widget, WidgetEventMap} from '../../index';
+import {AnyDoEntity, BaseDoEntity, Event, HybridActionContextElements, HybridManager, PropertyChangeEvent, Widget, WidgetEventMap} from '../../index';
 
 export interface HybridActionEvent<TObject extends AnyDoEntity = AnyDoEntity, T = HybridManager> extends Event<T> {
   data: {
@@ -19,7 +19,7 @@ export interface HybridActionEvent<TObject extends AnyDoEntity = AnyDoEntity, T 
   };
 }
 
-export interface HybridActionEndEvent<TObject extends AnyDoEntity = AnyDoEntity, T = HybridManager> extends Event<T> {
+export interface HybridActionEndEvent<TObject extends BaseDoEntity = BaseDoEntity, T = HybridManager> extends Event<T> {
   data: TObject;
   contextElements: HybridActionContextElements;
 }

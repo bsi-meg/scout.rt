@@ -8,8 +8,8 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 import {
-  AnyDoEntity, Event, EventHandler, EventListener, EventMapOf, Form, HybridActionContextElements, HybridActionEvent, HybridManagerEventMap, HybridManagerWidgetAddEvent, HybridManagerWidgetRemoveEvent, InitModelOf, ObjectOrChildModel,
-  Session, UuidPool, Widget
+  AnyDoEntity, DoEntity, Event, EventHandler, EventListener, EventMapOf, Form, HybridActionContextElements, HybridActionEvent, HybridManagerEventMap, HybridManagerWidgetAddEvent, HybridManagerWidgetRemoveEvent, InitModelOf,
+  ObjectOrChildModel, Session, UuidPool, Widget
 } from '../../index';
 
 /**
@@ -100,12 +100,12 @@ export class HybridManager extends Widget {
   // hybrid events (java to js)
 
   /** @internal */
-  onHybridEvent(id: string, eventType: string, data: AnyDoEntity, contextElements: HybridActionContextElements) {
+  onHybridEvent(id: string, eventType: string, data: DoEntity, contextElements: HybridActionContextElements) {
     this.trigger(`${eventType}:${id}`, {data, contextElements});
   }
 
   /** @internal */
-  onHybridWidgetEvent(id: string, eventType: string, data: AnyDoEntity) {
+  onHybridWidgetEvent(id: string, eventType: string, data: DoEntity) {
     const widget = this.widgets[id];
     if (!widget) {
       return;
@@ -117,11 +117,11 @@ export class HybridManager extends Widget {
     }
   }
 
-  protected _onHybridWidgetEvent(widget: Widget, eventType: string, data: AnyDoEntity) {
+  protected _onHybridWidgetEvent(widget: Widget, eventType: string, data: DoEntity) {
     widget.trigger(eventType, {data});
   }
 
-  protected _onHybridFormEvent(form: Form, eventType: string, data: AnyDoEntity) {
+  protected _onHybridFormEvent(form: Form, eventType: string, data: DoEntity) {
     if (eventType === 'reset') {
       form.setData(data);
       form.trigger('reset');
@@ -161,7 +161,7 @@ export class HybridManager extends Widget {
    * @see IHybridAction
    * @see AbstractHybridAction.fireHybridActionEndEvent
    */
-  callActionAndWait(actionType: string, data?: AnyDoEntity, contextElements?: HybridActionContextElements): JQuery.Promise<AnyDoEntity> {
+  callActionAndWait(actionType: string, data?: AnyDoEntity, contextElements?: HybridActionContextElements): JQuery.Promise<DoEntity> {
     return this.callActionAndWaitWithContext(actionType, data, contextElements)
       .then(result => result.data);
   }
@@ -227,6 +227,6 @@ export class HybridManager extends Widget {
 }
 
 export interface HybridManagerActionEndEventResult {
-  data: AnyDoEntity;
+  data: DoEntity;
   contextElements?: HybridActionContextElements;
 }

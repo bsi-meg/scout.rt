@@ -7,7 +7,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-import {ChildModelOf, dataObjects, Event, Form, FormAdapter, FullModelOf, JsFormModel, Widget} from '../../index';
+import {ChildModelOf, dataObjects, doValueMetaData, Event, Form, FormAdapter, FullModelOf, JsFormModel, objects, Widget} from '../../index';
 
 export class JsFormAdapter extends FormAdapter {
 
@@ -24,10 +24,13 @@ export class JsFormAdapter extends FormAdapter {
       objectType: model.jsFormObjectType,
       displayParent: model.displayParent,
       displayHint: model.displayHint,
-      data: dataObjects.deserialize(model.inputData)
+      data: dataObjects.deserializeLenient(model.inputData)
     };
 
     if (model.jsFormModel) {
+      for (let [key, value] of Object.entries(model.jsFormModel)) {
+        model.jsFormModel[key] = dataObjects.deserializeLenient(value);
+      }
       jsFormModel = $.extend(true, {}, model.jsFormModel, jsFormModel);
     }
 
