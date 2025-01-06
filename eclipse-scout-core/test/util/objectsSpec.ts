@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2025 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -7,7 +7,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-import {Action, arrays, FormField, Menu, ObjectFactory, objects, scout, Widget} from '../../src/index';
+import {Action, arrays, dates, FormField, Menu, ObjectFactory, objects, scout, StringId, UuId, Widget} from '../../src/index';
 
 describe('objects', () => {
 
@@ -639,7 +639,6 @@ describe('objects', () => {
   });
 
   describe('equals', () => {
-
     it('works as expected', () => {
       // @ts-expect-error
       expect(objects.equals()).toBe(true); // undefined === undefined
@@ -671,11 +670,87 @@ describe('objects', () => {
         equals: () => true
       })).toBe(true);
     });
+  });
 
+  describe('equals2', () => {
+    it('can compare primitives', () => {
+      // @ts-expect-error
+      expect(objects.equals2()).toBe(true); // undefined === undefined
+      // @ts-expect-error
+      expect(objects.equals2(2)).toBe(false);
+      expect(objects.equals2(2, 2)).toBe(true);
+      expect(objects.equals2(2, 3)).toBe(false);
+      expect(objects.equals2(2, '2')).toBe(false);
+      expect(objects.equals2('2', '2')).toBe(true);
+      expect(objects.equals2('', false)).toBe(false);
+      expect(objects.equals2('', '')).toBe(true);
+      expect(objects.equals2(true, true)).toBe(true);
+      expect(objects.equals2(false, false)).toBe(true);
+      expect(objects.equals2(null, null)).toBe(true);
+    });
+
+    it('correctly compares arrays', () => {
+      let arr: number[] & { equals?: (o: any) => boolean } = [1, 2, 3];
+
+      // same
+      expect(objects.equals2(arr, arr)).toBe(true);
+
+      // other with same content: not deep, therefore, not equals
+      expect(objects.equals2(arr, [1, 2, 3])).toBe(false);
+      expect(objects.equals2([42], [42])).toBe(false);
+
+      // empty arrays always equal
+      expect(objects.equals2([], [])).toBe(true);
+    });
+
+    it('can compare Date', () => {
+      let date1 = dates.parseJsonDate('2025-01-06 12:04:39.708Z');
+      let date2 = dates.parseJsonDate('2025-01-06 11:04:39.708Z');
+      let date3 = dates.parseJsonDate('2025-01-06 12:04:39.708Z');
+
+      expect(date1).not.toBe(date3);
+      expect(objects.equals2(date1, date3)).toBeTrue();
+      expect(objects.equals2(date1, date2)).toBeFalse();
+      expect(objects.equals2(date1, date1)).toBeTrue();
+    });
+
+    it('uses equals method if available', () => {
+      let arr01: number[] & { equals?: (o: any) => boolean } = [1, 2, 3];
+      arr01.equals = a => objects.isArray(a) && arrays.equalsIgnoreOrder(arr01, a);
+      const arr02: number[] & { equals?: (o: any) => boolean } = [2, 1, 3];
+      arr02.equals = a => objects.isArray(a) && arrays.equalsIgnoreOrder(arr02, a);
+
+      expect(objects.equals2(arr01, arr02)).toBe(true);
+
+      let a = {};
+      expect(objects.equals2(a, a)).toBe(true);
+      expect(objects.equals2({}, {})).toBe(false);
+      expect(objects.equals2(a, {})).toBe(false);
+      let b = {
+        equals: () => true
+      };
+      expect(objects.equals2({
+        equals: () => true
+      }, b)).toBe(true);
+      expect(objects.equals2(b, arr01)).toBeFalse(); // different type
+
+      class Empty1 {
+        equals(o: any): boolean {
+          return true;
+        }
+      }
+
+      class Empty2 {
+        equals(o: any): boolean {
+          return true;
+        }
+      }
+
+      expect(objects.equals2(new Empty1(), new Empty2())).toBeFalse(); // because different class
+    });
   });
 
   describe('equalsRecursive', () => {
-
     it('works as expected', () => {
       // @ts-expect-error
       expect(objects.equalsRecursive()).toBe(true); // undefined === undefined
@@ -719,6 +794,79 @@ describe('objects', () => {
       b['d'] = '2';
       b['c'] = '1';
       expect(objects.equalsRecursive(a, b)).toBe(true);
+    });
+  });
+
+  describe('equalsRecursive2', () => {
+    it('works as expected', () => {
+      // @ts-expect-error
+      expect(objects.equalsRecursive2()).toBe(true); // undefined === undefined
+      // @ts-expect-error
+      expect(objects.equalsRecursive2(2)).toBe(false);
+      expect(objects.equalsRecursive2(2, 2)).toBe(true);
+      expect(objects.equalsRecursive2(2, 3)).toBe(false);
+      expect(objects.equalsRecursive2(2, '2')).toBe(false);
+      expect(objects.equalsRecursive2('2', '2')).toBe(true);
+      expect(objects.equalsRecursive2('', false)).toBe(false);
+      expect(objects.equalsRecursive2('', '')).toBe(true);
+      expect(objects.equalsRecursive2(true, true)).toBe(true);
+      expect(objects.equalsRecursive2(null, null)).toBe(true);
+      expect(objects.equalsRecursive2([], [])).toBe(true);
+      let arr01 = [1, 2, 3];
+      expect(objects.equalsRecursive2(arr01, arr01)).toBe(true);
+      expect(objects.equalsRecursive2(arr01, [1, 2, 3])).toBe(true);
+      expect(objects.equalsRecursive2(arr01, [3, 2, 1])).toBe(false);
+    });
+
+    it('compares objects correctly', () => {
+      let a = {};
+      expect(objects.equalsRecursive2(a, a)).toBe(true);
+      expect(objects.equalsRecursive2({}, {})).toBe(true);
+      expect(objects.equalsRecursive2({a: '1', b: '2'}, {a: '1', b: '2'})).toBe(true);
+      expect(objects.equalsRecursive2({a: [{a: '1', b: '2'}, {a: '3', b: '4'}]}, {a: [{a: '1', b: '2'}, {a: '3', b: '4'}]})).toBe(true);
+      expect(objects.equalsRecursive2({a: [{a: '3', b: '4'}, {a: '1', b: '2'}]}, {a: [{a: '1', b: '2'}, {a: '3', b: '4'}]})).toBe(false);
+      expect(objects.equalsRecursive2({
+        equals: () => true
+      }, {
+        equals: () => true
+      })).toBe(true);
+
+      let objWithDateA = {
+        d: dates.parseJsonDate('2025-01-06 12:04:39.708Z')
+      };
+      let objWithDateB = {
+        d: dates.parseJsonDate('2025-01-06 11:04:39.708Z')
+      };
+      let objWithDateC = {
+        d: dates.parseJsonDate('2025-01-06 12:04:39.708Z')
+      };
+      expect(objects.equalsRecursive2(objWithDateA, objWithDateA)).toBeTrue();
+      expect(objects.equalsRecursive2(objWithDateA, objWithDateB)).toBeFalse();
+      expect(objects.equalsRecursive2(objWithDateA, objWithDateC)).toBeTrue();
+
+      class Empty1 {
+      }
+
+      class Empty2 {
+      }
+
+      let empty1 = new Empty1();
+      let empty2 = new Empty2();
+      expect(objects.equalsRecursive2(empty1, empty2)).toBeFalse();
+    });
+
+    it('ignores key order', () => {
+      expect(objects.equalsRecursive2({a: '1', b: '2'}, {b: '2', a: '1'})).toBe(true);
+      expect(objects.equalsRecursive2({a: {b: '1', c: '2'}}, {a: {c: '2', b: '1'}})).toBe(true);
+
+      // Object.keys() returns key based on insertion order -> assert that this won't matter
+      let a = {};
+      let b = {};
+      a['c'] = '1';
+      a['d'] = '2';
+      b['d'] = '2';
+      b['c'] = '1';
+      expect(objects.equalsRecursive2(a, b)).toBe(true);
     });
   });
 
@@ -1029,6 +1177,86 @@ describe('objects', () => {
       expect(Object.keys(sortedObj.a)).toEqual(['x', 'y', 'z']);
       expect(sortedObj.a).not.toBe(obj.a);
       expect(sortedObj.a.x).toBe(sortedObj);
+    });
+  });
+
+  describe('equalsMap', () => {
+    it('works as expected', () => {
+      const map1 = new Map();
+      map1.set('a', 1);
+      map1.set('b', dates.parseJsonDate('2025-01-08 13:44:39.708Z'));
+      const map2 = new Map();
+      map2.set('a', 1);
+      map2.set('b', dates.parseJsonDate('2025-01-08 14:44:39.708Z'));
+      const map3 = new Map();
+      map3.set('a', 1);
+      map3.set('b', dates.parseJsonDate('2025-01-08 13:44:39.708Z'));
+
+      const map4 = new Map();
+      map4.set('b', undefined);
+      const map5 = new Map();
+      map5.set('a', 4);
+
+      expect(objects.equalsMap(null, null)).toBeTrue();
+      expect(objects.equalsMap(undefined, undefined)).toBeTrue();
+      expect(objects.equalsMap(null, undefined)).toBeFalse();
+      expect(objects.equalsMap(undefined, null)).toBeFalse();
+
+      expect(objects.equalsMap(map1, map2)).toBeFalse();
+      expect(objects.equalsMap(map1, map1)).toBeTrue();
+      expect(objects.equalsMap(map1, map3)).toBeTrue();
+      expect(objects.equalsMap(map4, map5)).toBeFalse();
+      expect(objects.equalsMap(map3, map5)).toBeFalse();
+    });
+
+    it('supports equality checks for keys', () => {
+      const map1 = new Map();
+      map1.set(StringId.of('id', 'tn'), 1);
+      map1.set(StringId.of('id', 'tn'), 1);
+      map1.set(StringId.of('id', 'tn'), 1);
+      const map2 = new Map();
+      map2.set(StringId.of('id', 'tn'), 1);
+      map2.set(StringId.of('id', 'tn'), 1);
+      map2.set(StringId.of('id', 'tn'), 1);
+      const map3 = new Map();
+      map3.set(StringId.of('id', 'tn'), 1);
+      map3.set(StringId.of('id', 'tn'), 1);
+      map3.set(StringId.of('id', 'tn'), 2);
+      const map4 = new Map();
+      map4.set(StringId.of('id', 'tn'), 1);
+      map4.set(StringId.of('id', 'tn'), 1);
+      map4.set(UuId.of('id', 'tn'), 1);
+
+      const map5 = new Map();
+      map5.set(dates.parseJsonDate('2025-01-08 13:44:39.708Z'), 1);
+      map5.set(dates.parseJsonDate('2025-01-08 13:44:39.708Z'), 1);
+      const map6 = new Map();
+      map6.set(dates.parseJsonDate('2025-01-08 13:44:39.708Z'), 1);
+      map6.set(dates.parseJsonDate('2025-01-08 13:44:39.708Z'), 1);
+      const map7 = new Map();
+      map7.set(dates.parseJsonDate('2025-01-08 13:44:39.708Z'), 1);
+      map7.set(dates.parseJsonDate('2025-01-08 14:44:39.708Z'), 1);
+
+      expect(objects.equalsMap(map1, map2)).toBeTrue();
+      expect(objects.equalsMap(map1, map3)).toBeFalse(); // difference in value
+      expect(objects.equalsMap(map1, map4)).toBeFalse(); // difference in key
+      expect(objects.equalsMap(map5, map6)).toBeTrue();
+      expect(objects.equalsMap(map5, map7)).toBeFalse(); // difference in key
+    });
+
+    it('can check deep', () => {
+      const map1 = new Map();
+      map1.set('a', {});
+      map1.set('b', {
+        d: dates.parseJsonDate('2025-01-08 13:44:39.708Z')
+      });
+      const map2 = new Map();
+      map2.set('a', {});
+      map2.set('b', {
+        d: dates.parseJsonDate('2025-01-08 13:44:39.708Z')
+      });
+
+      expect(objects.equalsMap(map1, map2)).toBeTrue();
     });
   });
 });

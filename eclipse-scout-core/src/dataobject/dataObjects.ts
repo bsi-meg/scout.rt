@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2025 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -7,10 +7,56 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
-import {arrays, DoEntity, objects, scout} from '..';
+import {
+  ArrayDoNodeSerializer, arrays, Constructor, DataObjectDeserializer, DataObjectSerializer, DateDoNodeSerializer, DoEntity, DoNodeSerializer, doValueMetaData, IdDoNodeSerializer, MapDoNodeSerializer, NumberDoNodeSerializer, objects,
+  ObjectType, scout, SetDoNodeSerializer
+} from '../index';
 
 export const dataObjects = {
+
+  serializers: [
+    new DateDoNodeSerializer(),
+    new IdDoNodeSerializer(),
+    new MapDoNodeSerializer(),
+    new SetDoNodeSerializer(),
+    new NumberDoNodeSerializer(),
+    new ArrayDoNodeSerializer() // must be after Set
+  ] as DoNodeSerializer<any>[],
+
+  stringify(dataObject: any): string {
+    const serialized = dataObjects.serialize(dataObject);
+    if (!serialized) {
+      return null;
+    }
+    return JSON.stringify(serialized);
+  },
+
+  serialize(dataObject: any): any {
+    if (!dataObject) {
+      return null;
+    }
+    return scout.create(DataObjectSerializer).serialize(dataObject);
+  },
+
+  parse<T extends DoEntity | DoEntity[]>(json: string, objectType?: ObjectType<T>): T {
+    if (!json) {
+      return null;
+    }
+    const value = JSON.parse(json);
+    return dataObjects.deserialize(value, objectType);
+  },
+
+  deserialize<T extends DoEntity | DoEntity[]>(obj: any, objectType?: ObjectType<T>): T {
+    if (!obj) {
+      return null;
+    }
+    // convert string to constructor if possible as the datatype metadata would be on the constructor
+    const metaData = doValueMetaData.resolveFieldMetaData(objectType);
+
+    const deserializer = scout.create(DataObjectDeserializer);
+    return deserializer.deserialize(obj, metaData);
+  },
+
   /**
    * @returns the DO entity contribution for the given contribution class or type.
    */
@@ -19,7 +65,7 @@ export const dataObjects = {
       return null;
     }
     scout.assertParameter('contributionClassOrType', contributionClassOrType);
-    return doEntity._contributions.find(contrib => predicate(contrib, contributionClassOrType)) as TContributionDo;
+    return doEntity._contributions.find(getContribPredicate(contributionClassOrType)) as TContributionDo;
   },
 
   /**
@@ -44,25 +90,27 @@ export const dataObjects = {
 
   /**
    * Removes the DO entity contributions whose class or type matches the given contribution class.
+   * @returns true if a contribution was removed.
    */
-  removeContribution<TContributionDo extends DoEntity>(contributionClassOrType: DoContributionClassOrType<TContributionDo>, doEntity: DoEntityWithContributions) {
+  removeContribution<TContributionDo extends DoEntity>(contributionClassOrType: DoContributionClassOrType<TContributionDo>, doEntity: DoEntityWithContributions): boolean {
     if (!doEntity) {
       return;
     }
     scout.assertParameter('contributionClassOrType', contributionClassOrType);
-    arrays.removeByPredicate(doEntity._contributions, contrib => predicate(contrib, contributionClassOrType));
+    const removed = arrays.removeByPredicate(doEntity._contributions, getContribPredicate(contributionClassOrType));
     if (doEntity._contributions?.length === 0) {
       delete doEntity._contributions;
     }
+    return removed;
   }
 };
 
-function predicate(contribution: DoEntity, contributionClassOrType: DoContributionClassOrType<DoEntity>): boolean {
+function getContribPredicate(contributionClassOrType: DoContributionClassOrType<DoEntity>): (c: DoEntity) => boolean {
   if (typeof contributionClassOrType === 'string') {
-    return contribution._type === contributionClassOrType;
+    return contribution => contribution._type === contributionClassOrType;
   }
-  return contribution.constructor === contributionClassOrType;
+  return contribution => contribution.constructor === contributionClassOrType;
 }
 
-type DoEntityWithContributions = DoEntity & { _contributions?: DoEntity[] };
-type DoContributionClassOrType<TContributionDo extends DoEntity> = string | (new(...args) => TContributionDo);
+export type DoEntityWithContributions = DoEntity & { _contributions?: DoEntity[] };
+export type DoContributionClassOrType<TContributionDo extends DoEntity> = string | Constructor<TContributionDo>;

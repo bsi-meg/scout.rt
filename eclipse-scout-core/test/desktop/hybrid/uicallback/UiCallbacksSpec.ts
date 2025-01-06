@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2025 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -35,11 +35,10 @@ describe('UiCallbacks', () => {
   });
 
   it('uses UiCallbackErrorDo returned by handler', done => {
-    const err: UiCallbackErrorDo = {
-      _type: 'scout.UiCallbackError',
+    const err = scout.create(UiCallbackErrorDo, {
       message: 'Test Error',
       code: 'Test Code'
-    };
+    });
 
     class UiCallbackHandlerReturningError implements UiCallbackHandler {
       handle(callbackId: string, owner: Desktop, request: DoEntity): JQuery.Promise<DoEntity> {
@@ -66,11 +65,10 @@ describe('UiCallbacks', () => {
     expectUiCallbackResponse(RejectedUiCallbackHandler, callbackId, {
       id: callbackId,
       data: null,
-      error: {
-        _type: 'scout.UiCallbackError',
+      error: scout.create(UiCallbackErrorDo, {
         message: 'Test Error',
         code: 'P4'
-      }
+      })
     }).then(() => done());
   });
 
@@ -85,11 +83,10 @@ describe('UiCallbacks', () => {
     expectUiCallbackResponse(ThrowingUiCallbackHandler, callbackId, {
       id: callbackId,
       data: null,
-      error: {
-        _type: 'scout.UiCallbackError',
+      error: scout.create(UiCallbackErrorDo, {
         message: 'Test Error',
         code: 'P4'
-      }
+      })
     }).then(() => done());
   });
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2025 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -7,7 +7,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-import {arrays, JsonValueMapper, ObjectFactory, Primitive, scout} from '../index';
+import {arrays, dates, ObjectFactory, Primitive, scout} from '../index';
 import $ from 'jquery';
 
 const CONST_REGEX = /\${const:([^}]*)}/;
@@ -536,7 +536,23 @@ export const objects = {
   },
 
   /**
-   * Compares two objects and all its child elements recursively ignoring the order of the keys.
+   * Java-like equals method.
+   *
+   * The two values are considered equal if one of the following rules applies:
+   *
+   * * They are the same objects (===).
+   * * They are Dates having the same value.
+   * * They are both zero-length arrays.
+   * * They have both an `equals` method, are of the same Class and the `equals` method returns `true`.
+   *
+   * @returns true if both values are equal.
+   */
+  equals2(objA: any, objB: any): boolean {
+    return !!equalsImpl(objA, objB); // equalsImpl might return null which means false.
+  },
+
+  /**
+   * Compares two objects and all its child elements recursively using same equality ignoring the order of the keys.
    *
    * @returns true if both objects and all child elements are equals by value or implemented equals method
    */
@@ -571,6 +587,58 @@ export const objects = {
       }
       return true;
     }
+    return false;
+  },
+
+  /**
+   * Compares two objects and all its child elements recursively using value equality as defined by {@link #equals2}. Order of the property keys is ignored.
+   *
+   * @returns true if both objects and all child elements are equals by value or implemented equals method
+   */
+  equalsRecursive2(objA: any, objB: any, skipRootEquals = false): boolean {
+    const equalsResult = equalsImpl(objA, objB, !skipRootEquals);
+    if (equalsResult !== null) {
+      return equalsResult;
+    }
+
+    // Map
+    if (objA instanceof Map && objB instanceof Map) {
+      return objects.equalsMap(objA, objB);
+    }
+
+    // Set
+    if (objA instanceof Set && objB instanceof Set) {
+      return objects.equalsSet(objA, objB, true);
+    }
+
+    // Objects
+    if (objects.isObject(objA) && objects.isObject(objB)) {
+      const keysA = Object.keys(objA);
+      const keysB = Object.keys(objB);
+      if (!arrays.equalsIgnoreOrder(keysA, keysB)) {
+        return false;
+      }
+      for (const key of keysA) {
+        if (!objects.equalsRecursive2(objA[key], objB[key])) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    // Arrays
+    if (objects.isArray(objA) && objects.isArray(objB)) {
+      if (objA.length !== objB.length) {
+        return false;
+      }
+      for (let i = 0; i < objA.length; i++) {
+        if (!objects.equalsRecursive2(objA[i], objB[i])) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     return false;
   },
 
@@ -680,7 +748,7 @@ export const objects = {
    *
    * The object is modified *in-place* and is also returned.
    *
-   * If the given object is set but not a {@link isPlainObject plain object}, an error is thrown.
+   * If the given object is set but not a {@link isObject plain object}, an error is thrown.
    *
    * @see isNullOrUndefinedOrEmpty
    */
@@ -758,30 +826,72 @@ export const objects = {
     return value;
   },
 
-  /**
-   * Parses the given JSON string and creates a JavaScript object using JSON.parse.
-   * One or more mapping functions can be passed to transform the properties of the object before it is returned.
-   * Compared to JSON.parse, there won't be an error if data is an empty string or undefined. Instead, data is returned as it is.
-   */
-  parseJson(data: string, ...mappers: JsonValueMapper[]) {
-    if (!data) {
-      return data;
+  equalsSet(setA: Set<any>, setB: Set<any>, deep = false) {
+    if (setA === setB) {
+      return true;
     }
-    return JSON.parse(data, (key, value) => {
-      for (const mapper of mappers) {
-        value = mapper(key, value);
+    if (!setA || !setB) {
+      return false;
+    }
+    if (setA.size !== setB.size) {
+      return false;
+    }
+    const copyB = Array.from(setB);
+    const predicate = deep ? (a, b) => objects.equalsRecursive2(a, b) : (a, b) => objects.equals2(a, b);
+    for (const entry of setA) {
+      const foundAt = arrays.findIndex(copyB, e => predicate(entry, e));
+      if (foundAt < 0) {
+        return false;
       }
-      return value;
-    });
+      copyB.splice(foundAt, 1); // remove item found from set copy
+    }
+    return true;
   },
 
-  stringifyJson(json: object, ...mappers: JsonValueMapper[]) {
-    // Must NOT be an arrow function to maintain 'this'
-    return JSON.stringify(json, function(key, value) {
-      for (const mapper of mappers) {
-        value = mapper.call(this, key, value);
-      }
-      return value;
-    });
+  equalsMap(mapA: Map<any, any>, mapB: Map<any, any>): boolean {
+    if (mapA === mapB) {
+      return true;
+    }
+    if (!mapA || !mapB) {
+      return false;
+    }
+    if (mapA.size !== mapB.size) {
+      return false;
+    }
+    const setA = new Set(mapA.entries());
+    const setB = new Set(mapB.entries());
+    return objects.equalsSet(setA, setB, true);
   }
 };
+
+function equalsImpl(objA: any, objB: any, useEqualsFunc = true): boolean | null {
+  if (objA === objB) {
+    return true;
+  }
+
+  // both values are of the same type (which may be null)
+  if (protoTypeOf(objA) !== protoTypeOf(objB)) {
+    return false; // cannot be equal if different type
+  }
+
+  // dates
+  if (objA instanceof Date) {
+    return dates.equals(objA, objB);
+  }
+
+  // special case: two empty arrays are equal
+  if (objects.isArray(objA) && !objA.length && !objB.length) {
+    return true;
+  }
+
+  // both objects have an equals() function
+  if (useEqualsFunc && objects.isFunction(objA?.equals) && objects.isFunction(objB?.equals)) {
+    return objA.equals(objB);
+  }
+
+  return null; // = false
+}
+
+function protoTypeOf(obj: any): any {
+  return objects.isNullOrUndefined(obj) ? null : Object.getPrototypeOf(obj);
+}

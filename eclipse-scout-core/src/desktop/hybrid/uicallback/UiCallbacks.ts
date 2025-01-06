@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2025 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -7,7 +7,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-import {App, DoEntity, scout, UiCallbacksEventMap, Widget} from '../../../index';
+import {App, BaseDoEntity, DoEntity, scout, typeName, UiCallbacksEventMap, Widget} from '../../../index';
 
 /**
  * Processes UI callback requests from the client backend.
@@ -36,11 +36,10 @@ export class UiCallbacks extends Widget {
     }
     return App.get().errorHandler.analyzeError(error)
       .then(info => {
-        const errorDo: UiCallbackErrorDo = {
-          _type: 'scout.UiCallbackError',
+        const errorDo = scout.create(UiCallbackErrorDo, {
           message: info.message,
           code: info.code
-        };
+        });
         this._triggerUiResponse(callbackId, null, errorDo);
       });
   }
@@ -51,7 +50,8 @@ export class UiCallbacks extends Widget {
   }
 }
 
-export interface UiCallbackErrorDo extends DoEntity {
+@typeName('scout.UiCallbackError')
+export class UiCallbackErrorDo extends BaseDoEntity {
   message: string;
   code: string;
 }

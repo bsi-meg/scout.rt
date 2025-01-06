@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2025 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -501,6 +501,37 @@ public abstract class AbstractIdCodecTest {
     FixtureWrapperCompositeId id1 = IIds.create(FixtureWrapperCompositeId.class, TEST_STRING, TEST_UUID, TEST_STRING_2);
     IId id2 = getCodec().fromUnqualified(FixtureWrapperCompositeId.class, "foobar;5833aae1-c813-4d7c-a342-56a53772a3ea;bazäöl");
     assertEquals(id1, id2);
+  }
+
+  @Test
+  public void testFromUnqualifiedHavingTypeName() {
+    FixtureUuId id = IIds.create(FixtureUuId.class, TEST_UUID);
+    String typeName = BEANS.get(IdInventory.class).getTypeName(id);
+    assertEquals("scout.FixtureUuId", typeName);
+
+    FixtureUuId deserialized = getCodec().fromUnqualified(FixtureUuId.class, typeName + IdCodec.ID_TYPENAME_DELIMITER + TEST_UUID);
+    assertEquals(id, deserialized);
+    assertEquals(id.unwrap(), deserialized.unwrap());
+  }
+
+  @Test
+  public void testFromQualifiedHavingTwoTypeNames() {
+    String typeName = BEANS.get(IdInventory.class).getTypeName(FixtureStringId.class);
+    FixtureStringId id = FixtureStringId.of(typeName + IdCodec.ID_TYPENAME_DELIMITER + TEST_STRING);
+    assertEquals("scout.FixtureStringId", typeName);
+
+    IId deserialized = getCodec().fromQualified(typeName + IdCodec.ID_TYPENAME_DELIMITER + typeName + IdCodec.ID_TYPENAME_DELIMITER + TEST_STRING);
+    assertEquals(id.unwrap(), deserialized.unwrap());
+  }
+
+  @Test
+  public void testFromUnqualifiedHavingTwoTypeNames() {
+    String typeName = BEANS.get(IdInventory.class).getTypeName(FixtureStringId.class);
+    FixtureStringId id = FixtureStringId.of(typeName + IdCodec.ID_TYPENAME_DELIMITER + TEST_STRING);
+    assertEquals("scout.FixtureStringId", typeName);
+
+    IId deserialized = getCodec().fromUnqualified(FixtureStringId.class, typeName + IdCodec.ID_TYPENAME_DELIMITER + typeName + IdCodec.ID_TYPENAME_DELIMITER + TEST_STRING);
+    assertEquals(id.unwrap(), deserialized.unwrap());
   }
 
   @Test
