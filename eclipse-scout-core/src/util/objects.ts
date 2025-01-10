@@ -211,6 +211,13 @@ export const objects = {
     if (obj === undefined || obj === null || typeof obj !== 'object') {
       return obj;
     }
+
+    // @ts-expect-error
+    if (objects.isFunction(obj?.clone)) {
+      // @ts-expect-error
+      return obj.clone();
+    }
+
     let copy;
     // Arrays
     if (Array.isArray(obj)) {

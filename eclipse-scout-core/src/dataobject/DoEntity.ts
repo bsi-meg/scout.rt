@@ -49,8 +49,15 @@ export class BaseDoEntity implements DoEntity, BaseDoEntityModel {
    * deep
    * note: may be different (e.g. when using maps with equal values)
    */
-  clone(): this {
-    return dataObjects.deserialize(this.toPojo());
+  clone(model?: InitModelOf<this> | this): this {
+    let pojo;
+    if (model instanceof BaseDoEntity) {
+      pojo = model.toPojo();
+    } else {
+      pojo = model;
+    }
+    // TODO CGU does not work, extends arrays as well
+    return dataObjects.deserialize($.extend(true, objects.valueCopy(this.toPojo()), pojo));
   }
 
   equals(obj: any) {
