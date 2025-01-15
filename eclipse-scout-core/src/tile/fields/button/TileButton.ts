@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2025 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -98,9 +98,24 @@ export class TileButton extends Button {
       tooltips.uninstall(this.$container);
     }
   }
-
   protected override _renderLabelVisible() {
     super._renderLabelVisible();
-    this._renderChildVisible(this.$buttonLabel, this.labelVisible);
+    this._updateLabelAndIconStyle();
+  }
+
+  protected override _updateLabelAndIconStyle() {
+    let hasText = !!this.label;
+    let hasIcon = !!this.iconId;
+    let hasSubMenuIcon = !!this.$submenuIcon;
+    let hasAnyIcon = hasIcon || hasSubMenuIcon;
+
+    // Tile buttons without text and icons but labelVisible=true should still
+    // display the label (it will contain '&nsbp;', see _renderLabel)
+    let showButtonLabel = this.labelVisible && (hasText || !hasAnyIcon);
+
+    this._renderChildVisible(this.$buttonLabel, showButtonLabel);
+
+    this.$submenuIcon?.toggleClass('with-label', showButtonLabel);
+    this.get$Icon().toggleClass('with-label', showButtonLabel);
   }
 }
