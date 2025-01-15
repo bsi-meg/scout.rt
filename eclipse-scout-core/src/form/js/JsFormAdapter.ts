@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2023 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2025 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -7,7 +7,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-import {ChildModelOf, Event, Form, FormAdapter, FullModelOf, JsFormModel, Widget} from '../../index';
+import {ChildModelOf, dataObjects, Event, Form, FormAdapter, FullModelOf, JsFormModel, Widget} from '../../index';
 
 export class JsFormAdapter extends FormAdapter {
 
@@ -24,11 +24,14 @@ export class JsFormAdapter extends FormAdapter {
       objectType: model.jsFormObjectType,
       displayParent: model.displayParent,
       displayHint: model.displayHint,
-      data: model.inputData
+      data: dataObjects.deserialize(model.inputData, null, {createPojoIfDoIsUnknown: true})
     };
 
     if (model.jsFormModel) {
-      jsFormModel = $.extend(true, {}, model.jsFormModel, jsFormModel);
+      delete model.jsFormModel.objectType; // objectType from Form model should not be used as model.jsFormObjectType specifies the object already
+      let deserializedJsFormModel = dataObjects.deserialize(model.jsFormModel, null, {createPojoIfDoIsUnknown: true});
+      delete deserializedJsFormModel._type; // _type should not be written to Form if present
+      jsFormModel = $.extend({}, deserializedJsFormModel, jsFormModel);
     }
 
     return jsFormModel;
@@ -94,7 +97,7 @@ export class JsFormAdapter extends FormAdapter {
 
   protected _sendOutputData(type: string, data?: any) {
     this._send(type, {
-      outputData: data
+      outputData: dataObjects.serialize(data)
     });
   }
 
