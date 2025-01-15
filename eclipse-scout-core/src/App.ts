@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2025 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -109,7 +109,7 @@ export class App extends EventEmitter {
    * @returns the given data as it is if it does not contain an error
    */
   static handleJsonError(url: string, data: any): any {
-    if (data && data.error) {
+    if (data?.error) {
       // The result may contain a json error (e.g. session timeout) -> abort processing
       throw {
         error: data.error,
