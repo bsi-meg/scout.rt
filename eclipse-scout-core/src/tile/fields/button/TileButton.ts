@@ -79,6 +79,14 @@ export class TileButton extends Button {
     this.invalidateLayoutTree();
   }
 
+  override get$Icon(): JQuery {
+    let $iconTarget = this.$iconContainer;
+    if (!$iconTarget) {
+      return super.get$Icon();
+    }
+    return $iconTarget.children('.icon');
+  }
+
   protected override _renderSubmenuIcon() {
     if (!this._isInDashboardTile()) {
       super._renderSubmenuIcon();
@@ -98,24 +106,17 @@ export class TileButton extends Button {
       tooltips.uninstall(this.$container);
     }
   }
+
   protected override _renderLabelVisible() {
     super._renderLabelVisible();
     this._updateLabelAndIconStyle();
   }
 
   protected override _updateLabelAndIconStyle() {
-    let hasText = !!this.label;
-    let hasIcon = !!this.iconId;
-    let hasSubMenuIcon = !!this.$submenuIcon;
-    let hasAnyIcon = hasIcon || hasSubMenuIcon;
-
-    // Tile buttons without text and icons but labelVisible=true should still
-    // display the label (it will contain '&nsbp;', see _renderLabel)
-    let showButtonLabel = this.labelVisible && (hasText || !hasAnyIcon);
-
-    this._renderChildVisible(this.$buttonLabel, showButtonLabel);
-
-    this.$submenuIcon?.toggleClass('with-label', showButtonLabel);
-    this.get$Icon().toggleClass('with-label', showButtonLabel);
+    if (!this._isInDashboardTile()) {
+      super._updateLabelAndIconStyle();
+      return;
+    }
+    this._renderChildVisible(this.$buttonLabel, this.labelVisible);
   }
 }

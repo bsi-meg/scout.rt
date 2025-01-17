@@ -50,7 +50,7 @@ export class FormFieldTile extends WidgetTile {
   }
 
   protected _setDisplayStyle(displayStyle: FormFieldTileDisplayStyle) {
-    this._setProperty('displayStyle', this.displayStyle);
+    this._setProperty('displayStyle', displayStyle);
     if (this.tileWidget && this.displayStyle === FormFieldTile.DisplayStyle.DASHBOARD) {
       this.tileWidget.setLabelPosition(FormField.LabelPosition.TOP);
       this.tileWidget.setMandatory(false);
