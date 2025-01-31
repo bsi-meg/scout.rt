@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2025 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -277,6 +277,10 @@ export class Action extends Widget implements ActionModel {
     this._updateTooltip();
   }
 
+  protected _tooltipText(): string {
+    return this.tooltipText;
+  }
+
   /**
    * Installs or uninstalls tooltip based on tooltipText, selected and enabledComputed.
    */
@@ -286,14 +290,14 @@ export class Action extends Widget implements ActionModel {
     } else {
       tooltips.uninstall(this.$container);
     }
-    aria.description(this.$container, this.tooltipText);
+    aria.description(this.$container, this._tooltipText());
   }
 
   protected _shouldInstallTooltip(): boolean {
     if (this.selected && !this.showTooltipWhenSelected) {
       return false;
     }
-    return !!this.tooltipText;
+    return !!this._tooltipText();
   }
 
   /** @see ActionModel.tabbable */
@@ -333,7 +337,7 @@ export class Action extends Widget implements ActionModel {
   protected _configureTooltip(): InitModelOf<TooltipSupport> {
     return {
       parent: this,
-      text: this.tooltipText,
+      text: this._tooltipText(),
       $anchor: this.$container,
       arrowPosition: 50,
       arrowPositionUnit: '%',
@@ -422,13 +426,11 @@ export class Action extends Widget implements ActionModel {
 
   /** @see ActionModel.textVisible */
   setTextVisible(textVisible: boolean) {
-    if (this.textVisible === textVisible) {
-      return;
-    }
-    this._setProperty('textVisible', textVisible);
-    if (this.rendered) {
-      this._renderText();
-    }
+    this.setProperty('textVisible', textVisible);
+  }
+
+  protected _renderTextVisible() {
+    this._renderText();
   }
 
   /** @see ActionModel.horizontalAlignment */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2023 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2025 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -358,6 +358,7 @@ export class Menu extends Action implements MenuModel {
     this.$container.toggleClass('has-text', strings.hasText(this.text) && this.textVisible);
     if (!this.rendering) {
       this._renderSubMenuIcon();
+      this._updateTooltip(); // tooltip shows text when menu is shrunk (see _showTextAsTooltip)
     }
     this.invalidateLayoutTree();
   }
@@ -730,5 +731,16 @@ export class Menu extends Action implements MenuModel {
       return super.focus();
     }
     return false;
+  }
+
+  protected override _tooltipText(): string {
+    if (this._showTextAsTooltip()) {
+      return strings.join('\n\n', this.text, this.tooltipText);
+    }
+    return super._tooltipText();
+  }
+
+  protected _showTextAsTooltip(): boolean {
+    return this.text && !this.textVisible && this.textVisibleOrig;
   }
 }
