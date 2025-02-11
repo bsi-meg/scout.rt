@@ -61,7 +61,10 @@ module.exports = (env, args) => {
       });
   }
 
-  const minimizerTarget = ['firefox69', 'chrome71', 'safari13'];
+  // browser min. requirements for full ES2022 feature set
+  // Exception: static initialization blocks (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Static_initialization_blocks) which would require Safari 16
+  // But static initialization blocks can be transpiled by Babel to static fields which are supported in all these browsers. Therefore, in the code full ES2022 feature set can be used.
+  const minimizerTarget = ['firefox92', 'chrome93', 'safari15.4'];
   const babelOptions = {
     compact: false,
     cacheDirectory: true,
@@ -70,9 +73,9 @@ module.exports = (env, args) => {
       [require.resolve('@babel/preset-env'), {
         debug: false,
         targets: {
-          firefox: '69',
-          chrome: '71',
-          safari: '13'
+          firefox: '92',
+          chrome: '93',
+          safari: '15.4'
         }
       }]
     ]
@@ -186,7 +189,7 @@ module.exports = (env, args) => {
           }
         }]
       }, {
-        test: /\.tsx?$/,
+        test: /\.[c|m]?tsx?$/,
         exclude: /node_modules/,
         use: [{
           loader: require.resolve('babel-loader'),
@@ -196,13 +199,13 @@ module.exports = (env, args) => {
           options: tsOptions
         }]
       }, {
-        test: /\.jsx?$/,
+        test: /\.[c|m]?jsx?$/,
         use: [{
           loader: require.resolve('babel-loader'),
           options: babelOptions
         }]
       }, {
-        test: /\.jsx?$/,
+        test: /\.[c|m]?jsx?$/,
         enforce: 'pre',
         use: [{
           loader: require.resolve('source-map-loader')
